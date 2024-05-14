@@ -1,6 +1,11 @@
 package sdu.edu.kz.HardwareStore.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import sdu.edu.kz.HardwareStore.model.User;
 import sdu.edu.kz.HardwareStore.security.SecurityConfig;
 import sdu.edu.kz.HardwareStore.service.impl.UserServiceImpl;
@@ -34,23 +39,31 @@ public class AuthController {
                                @RequestParam(name = "surname") String surname) {
         String redirect = "";
 
-        User user = new User();
-        user.setName(name);
-        user.setSurname(surname);
-        user.setEmail(email);
-        user.setPassword(securityConfig.passwordEncoder().encode(password));
+
+        //Here we use Builder Pattern for optimizing and clean code(Handle problems)
+        User.UserBuilder userBuilder = User.builder()
+                .name(name)
+                .password(password)
+                .email(email);
+
+        userBuilder.surname(surname);
+
+        User user = userBuilder.build();
 
         if (password.equals(confPassword)) {
-            if (userService.addUser(user)) {
-                redirect = "redirect:/auth/?afterRegistration";
-            } else {
+            if (userService.findByUsername(user.getUsername()) != null) {
                 redirect = "redirect:/auth/?accountExist";
+            } else {
+                User newUser = userService.addUser(user);
+                if (newUser != null) {
+                    redirect = "redirect:/auth/?afterRegistration";
+                } else {
+                    redirect = "redirect:/auth/register/?error";
+                }
             }
         } else {
             redirect = "redirect:/auth/register/?notEqualPasswords";
         }
-
         return redirect;
-    }
     }
 }
